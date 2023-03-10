@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="faq">
+	<!--전체 faq게시글 조회 -->
+	<select id="faqList" resultType="faqVo">
+		select *
+		from faq
+		order by faq_cd
+	</select>
+	
+	<!--특정 faq게시글 조회 -->
+	<select id="getFaq" resultType="faqVo" parameterType="string">
+		select *
+		from faq
+		where faq_cd = #{faq_cd}
+	</select>
+	
+	<!--사용자 페이지 리스트 조회 -->
+	<select id="faqPagingList" parameterType="pageVo" resultType="faqVo">
+		<![CDATA[
+ 		select *
+ 		 from
+ 		(select a.*, rownum rn
+ 		 from
+ 		(select a.*
+ 		 from faq a
+ 		 where  faq_yn = 1
+ 		 order by regexp_replace(faq_cd, '[0-9]') , to_number(regexp_replace(faq_cd, '[^0-9]')) desc) a)
+ 		 where rn >= (#{page}-1)*#{pageSize} +1 and rn <= #{page}*#{pageSize}
+ 		]]>
+	</select>
+	
+	<!--게시글 전체수 조회  -->
+	<select id="faqCnt" resultType="int">
+		select /*+ INDEX_FFS(faq PK_FAQ) */ count(*)
+		from faq
+		where  faq_yn = 1
+	</select>
+	
+	<!--게시글 등록  -->
+	<insert id="insertFaq" parameterType="faqVo">
+		insert into faq
+		values(
+		'faq' || #{faq_cd}
+		, #{faq_title}
+		, #{faq_content}
+		, 1)
+	</insert>
+	
+	<!--게시글 삭제  -->
+	<update id="deleteFaq" parameterType="string">
+		update faq
+		set faq_yn = 0, faq_title='삭제된 글입니다'
+		where faq_cd = #{faq_cd} 
+	</update>
+	
+	<!--게시글 수정  -->
+	<update id="updateFaq" parameterType="faqVo">
+		update faq
+		set 
+		faq_title=#{faq_title}
+		, faq_content=#{faq_content}
+		where faq_cd = #{faq_cd}
+	</update>
+	
+	<!--faq_cd 가져오는 메서드-->
+	<select id="getFaq_cd" resultType="string">
+		select faq_seq.nextval from dual
+	</select>
+	
+	<!-- FAQ 게시글 제목으로 검색, 페이지 조회 -->
+	<select id="searchTitle" parameterType="map" resultType="faqVo">
+		<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+				FROM  (SELECT *
+				       FROM   FAQ
+				       WHERE  FAQ_YN = 1
+				       AND    FAQ_TITLE LIKE '%' || #{faq_title} || '%'
+				       ORDER BY REGEXP_REPLACE(FAQ_CD, '[0-9]') 
+				              , TO_NUMBER(REGEXP_REPLACE(FAQ_CD, '[^0-9]')) DESC) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	<!-- FAQ 게시글 제목으로 검색한 게시글 총 갯수 조회 -->
+	<select id="getSearchTitleCnt" parameterType="String" resultType="int">
+		SELECT COUNT(*)
+		FROM   FAQ
+		WHERE  FAQ_YN = 1
+		AND    FAQ_TITLE LIKE '%' || #{faq_title} || '%'
+	</select>
+	
+	<!-- 최근 작성된 faq 게시글 5개 조회 (삭제되지 않은 게시글만, 메인용) -->
+	<select id="getFaqMain" resultType="faqVo">
+		<![CDATA[
+		select *
+		from
+		    (select *
+		     from   faq
+		     where  faq_yn = 1
+		     order by regexp_replace(faq_cd, '[0-9]') 
+		            , to_number(regexp_replace(faq_cd, '[^0-9]')) desc)
+		where  rownum >= 1 and rownum <= 5
+		]]>
+	</select>
+	
+	
+</mapper>

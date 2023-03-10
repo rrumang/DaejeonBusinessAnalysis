@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="margin">
+	<!-- 업종 소분류의 표준산업분류의 대분류와 일치하는
+		 최신 창업기업 자금투입현황 조회 -->
+	<select id="getFund" parameterType="String" resultType="fundVo">
+		SELECT FUND_FE 
+		     , ROUND(FUND_PE / 12, 0) FUND_PE
+		     , ROUND(FUND_ME / 12, 0) FUND_ME
+		     , ROUND(FUND_ETC / 12, 0) FUND_ETC
+		FROM   FUND
+		WHERE  FUND_DT = (SELECT *
+					      FROM  (SELECT DISTINCT(FUND_DT)
+					             FROM   FUND
+					             ORDER BY FUND_DT DESC)
+					      WHERE ROWNUM = 1)
+		AND SIC_CD = (SELECT SIC_CD2
+				      FROM SIC
+				      WHERE SIC_CD = (SELECT SIC_CD
+						              FROM   TOB
+						              WHERE  TOB_CD = #{tob_cd}))
+	</select>
+	
+	<!-- 분석보고서 추가 -->
+	<insert id="insertReport" parameterType="reportVo">
+		<selectKey keyProperty="report_cd" resultType="String" order="AFTER">
+			SELECT 'report' || REPORT_SEQ.CURRVAL report_cd
+			FROM DUAL
+		</selectKey>
+		
+		INSERT INTO REPORT
+		VALUES ('report' || REPORT_SEQ.NEXTVAL, #{member_id}, #{tob_cd}, #{region_cd}, 3, SYSDATE)
+	</insert>
+	
+	<!-- 소요비용 추가 -->
+	<insert id="insertExpense" parameterType="expenseVo">
+		INSERT INTO EXPENSE
+		VALUES (#{report_cd}, #{ep_unit_cost}, #{ep_investment}, #{ep_premium, jdbcType=INTEGER},
+				#{ep_deposit, jdbcType=INTEGER}, #{ep_loan, jdbcType=INTEGER}, #{ep_roi, jdbcType=DOUBLE},
+				#{ep_iaf, jdbcType=INTEGER}, #{ep_monthly, jdbcType=INTEGER}, #{ep_personnel, jdbcType=INTEGER},
+				#{ep_material, jdbcType=INTEGER}, #{ep_etc, jdbcType=INTEGER})
+	</insert>
+	
+	<!-- 소요비용 조회 -->
+	<select id="getExpense" parameterType="String" resultType="expenseVo">
+		SELECT *
+		FROM   EXPENSE
+		WHERE  REPORT_CD = #{report_cd}
+	</select>
+	
+	<!-- 행정동에 따른 최신 월평균매출액, 월평균거래건수, 1회평균결제금액 조회  -->
+	<select id="getSales" parameterType="long" resultType="avgSalesVo">
+		SELECT SALES_MONTHLY SALES
+		     , ROUND(SALES_CNT / CNT, 0) CNT
+		     , SALES_PAYMENT  PAYMENT
+		FROM  (SELECT COUNT(*) CNT
+			        , ROUND(AVG(SALES_MONTHLY),0) SALES_MONTHLY
+			        , SUM(SALES_CNT) SALES_CNT
+			        , ROUND(SUM(SALES_MONTHLY) * 10000 / SUM(SALES_CNT), 0) SALES_PAYMENT
+			   FROM SALES
+			   WHERE SALES_DT = (SELECT  TO_NUMBER(SUBSTR(TO_CHAR(SYSDATE,'YYYYMM'),1,6)) 
+			                             - MIN(TO_NUMBER(SUBSTR(TO_CHAR(SYSDATE,'YYYYMM'),1,6))
+			                             - SALES_DT) 
+			                     FROM    SALES)
+			   AND REGION_CD = #{region_cd})
+	</select>
+	
+	<!-- 업종소분류코드로 업종소분류명, 업종중분류명, 업종대분류명 조회 -->
+	<select id="getTobNames" parameterType="String" resultType="String">
+		SELECT TOB.TOB_NAME || ' > ' || M.MN  || ' > ' || M.SN TOB
+		FROM   TOB
+		    , (SELECT S.TOB_NAME  SN
+		            , TOB.TOB_NAME MN
+		            , TOB.TOB_CD2  MC
+		       FROM TOB
+			     , (SELECT TOB_NAME
+			             , TOB_CD2
+			             , TOB_CD3
+			        FROM   TOB
+			        WHERE  TOB_CD = #{tob_cd}) S
+		       WHERE  TOB_CD = S.TOB_CD2) M
+		WHERE TOB_CD = M.MC
+	</select>
+	
+	<!-- 행정동코드로 행정동명, 행정구명 조회 -->
+	<select id="getRegionNames" parameterType="long" resultType="String">
+		SELECT '대전광역시 ' || REGION.REGION_NAME || ' ' || D.REGION_NAME REGION
+		FROM   REGION
+		     , (SELECT REGION_CD2
+		             , REGION_NAME
+		        FROM   REGION
+		        WHERE  REGION_CD = #{region_cd}) D
+		WHERE  REGION_CD = D.REGION_CD2
+	</select>
+	
+	<!-- 매출데이터 기준연월 조회 -->
+	<select id="getDataDt" resultType="String">
+		SELECT SUBSTR(SALES_DT,1,4) || '년 ' || SUBSTR(SALES_DT,5,2) || '월' DT
+		FROM  (SELECT  TO_CHAR(TO_NUMBER(SUBSTR(TO_CHAR(SYSDATE,'YYYYMM'),1,6)) 
+		             - MIN(TO_NUMBER(SUBSTR(TO_CHAR(SYSDATE,'YYYYMM'),1,6))
+		             - SALES_DT)) SALES_DT 
+		       FROM    SALES)
+	</select>
+	
+	<!-- 분석보고서 조회 -->
+	<select id="getReport" parameterType="String" resultType="reportVo">
+		SELECT *
+		FROM   REPORT
+		WHERE  REPORT_CD = #{report_cd}
+	</select>
+	
+	<!-- 관심지역의 구, 동코드, 관심업종코드 조회 -->
+	<select id="getInterest" parameterType="String" resultType="map">
+		SELECT R.REGION_CD2 G_CD
+		     , R.REGION_CD  D_CD
+		     , M.TOB_CD     T_CD
+		FROM   REGION R RIGHT OUTER JOIN 
+					   (SELECT REGION_CD
+						     , TOB_CD
+						FROM   MEMBERS 
+						WHERE  MEMBER_ID = #{member_id}) M
+		ON     R.REGION_CD = M.REGION_CD
+	</select>
+	
+	<!-- 분석설정정보 저장 -->
+	<insert id="insertMargin" parameterType="marginVo">
+		INSERT INTO MARGIN
+		VALUES (#{report_cd}, #{margin_region}, #{margin_tob}, #{margin_dt})
+	</insert>
+	
+	<!-- 월소요비용 저장 -->
+	<insert id="insertMonthlyEp" parameterType="monthlyEpVo">
+		INSERT INTO MONTHLY_EP
+		VALUES (#{report_cd}, #{rent}, #{fix_pe}, #{cost}, #{etc}, #{material}
+			  , #{var_pe}, #{total_fix}, #{total_var}, #{total})
+	</insert>
+	
+	<!-- 동일상권 매출현황 저장 -->
+	<insert id="insertAvgSales" parameterType="avgSalesVo">
+		INSERT INTO AVG_SALES
+		VALUES (#{report_cd}, #{sales}, #{cnt}, #{payment})
+	</insert>
+	
+	<!-- 목표매출 저장 -->
+	<insert id="insertSalesGoal" parameterType="salesGoalVo">
+		INSERT INTO SALES_GOAL
+		VALUES (#{report_cd}, #{sg_peroid}, #{m_sales}, #{d_sales}, #{d_customer}
+			  , #{tax}, #{profit})
+	</insert>
+	
+	<!-- 분석설정정보 조회 -->
+	<select id="getMargin" parameterType="String" resultType="marginVo">
+		SELECT *
+		FROM   MARGIN
+		WHERE  REPORT_CD = #{report_cd}
+	</select>
+	
+	<!-- 월소요비용 조회 -->
+	<select id="getMonthlyEp" parameterType="String" resultType="monthlyEpVo">
+		SELECT *
+		FROM   MONTHLY_EP
+		WHERE  REPORT_CD = #{report_cd}
+	</select>
+	
+	<!-- 동일상권 매출현황 조회 -->
+	<select id="getAvgSales" parameterType="String" resultType="avgSalesVo">
+		SELECT *
+		FROM   AVG_SALES
+		WHERE  REPORT_CD = #{report_cd}
+	</select>
+	
+	<!-- 목표매출 조회 -->
+	<select id="getSalesGoal" parameterType="String" resultType="salesGoalVo">
+		SELECT *
+		FROM   SALES_GOAL
+		WHERE  REPORT_CD = #{report_cd}
+		ORDER BY SG_PEROID DESC
+	</select>
+</mapper>

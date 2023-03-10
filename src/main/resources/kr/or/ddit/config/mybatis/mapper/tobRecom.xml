@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tobRecom">
+
+	<!-- 전체 구/동 목록 조회 -->
+	<select id="getRegion" resultType="regionVo">
+		select * from region
+	</select>
+	
+	<!-- 선택한 구에 해당하는 동 목록 조회 -->
+	<select id="getDong" parameterType="int" resultType="regionVo">
+		select * from region
+		where region_cd2 = #{region_cd2}
+	</select>
+	
+	<!-- 관심지역 조회 -->
+	<select id="getInterestRegion" parameterType="string" resultType="regionVo">
+		select b.region_csc, b.region_cd2, b.region_cd, a.region_name, b.region_name rn2
+		from region a, region b
+		where a.region_cd = 
+		(select region_cd2 from region where region_cd = 
+		(select region_cd from members where member_id = #{member_id}))
+		and b.region_cd = 
+		(select region_cd from members where member_id = #{member_id})
+	</select>
+	
+	<!-- 지역코드로 하나의 지역정보 객체 반환 -->
+	<select id="getOneRegion" parameterType="long" resultType="regionVo">
+		select * from region
+		where region_cd = #{region_cd}
+	</select>
+	
+	<!-- 매출자료를 바탕으로 기준데이터시점을 반환 -->
+	<select id="getStData" resultType="int">
+		select  sales_dt
+		from    sales
+		where   sales_dt = (select  to_number(substr(to_char(sysdate,'yyyyMM'),1,6)) - min(to_number(substr(to_char(sysdate,'yyyyMM'),1,6)) - sales_dt) 
+		                    from sales)
+		group by sales_dt
+	</select>
+	
+	<!-- 상권유형 산출을 위한 사업체수 조회 -->
+	<select id="getBdType" parameterType="long" resultType="kr.or.ddit.tobRecom.model.JbVo">
+		select substr(bd.tob_cd,1,1) jbunryu
+			   , sum(bd.bd_cnt) total
+		from bd bd
+		,(select tob_cd from tob
+		where tob_yn = 0
+		and tob_cl = 3) tob
+		where bd.tob_cd = tob.tob_cd
+		and bd.REGION_CD = #{region_cd}
+		and bd.BD_DT = 201903
+		and bd.bd_cl = 1
+		group by substr(bd.tob_cd,1,1)
+		order by jbunryu
+	</select>
+	
+	<!-- 동별 중분류별 점유율 -->
+	<select id="getRegionShare" parameterType="long" resultType="kr.or.ddit.tobRecom.model.JbVo">
+		select substr(tob.tob_cd,1,1) tob_cd
+	     , tob.tob_name
+	     , sum(bd.bd_cnt) region_sum
+		from bd bd, tob tob, region region
+		where tob.tob_cd = substr(bd.tob_cd,1,3)
+		and region.region_cd = bd.region_cd
+		and tob.TOB_YN = 0
+		and tob.TOB_CL = 2
+		and bd.REGION_CD = #{region_cd}
+		group by rollup(substr(tob.tob_cd,1,1), tob.tob_name) HAVING GROUPING_ID(substr(tob.tob_cd,1,1), tob.tob_name) != 1
+		order by substr(tob.tob_cd,1,1)
+	</select>
+	
+	<!-- 시 중분류별 점유율 -->
+	<select id="getCityShare" resultType="kr.or.ddit.tobRecom.model.JbVo">
+		select substr(tob.tob_cd,1,1) tob_cd
+	     , tob.tob_name
+	     , sum(bd.bd_cnt) region_sum
+		from bd bd, tob tob, region region
+		where tob.tob_cd = substr(bd.tob_cd,1,3)
+		and region.region_cd = bd.region_cd
+		and tob.TOB_YN = 0
+		and tob.TOB_CL = 2
+		group by rollup(substr(tob.tob_cd,1,1), tob.tob_name) HAVING GROUPING_ID(substr(tob.tob_cd,1,1), tob.tob_name) != 1
+		order by substr(tob.tob_cd,1,1)
+	</select>
+	
+	<!-- 동별 상권규모 조회 -->
+	<select id="getScale" resultType="kr.or.ddit.tobRecom.model.JbVo">
+		select REGION_CD, rank() over(order by sum(SALES_MONTHLY) desc) rank
+		from SALES
+		where SALES_DT = 201904
+		group by REGION_CD
+	</select>
+	
+	<!-- 동별 주거인구 조회 -->
+	<select id="getLpList" parameterType="long" resultType="lpVo">
+		select * from lp
+		where region_cd = #{region_cd}
+		order by lp_age_group, lp_gender
+	</select>
+	
+	<!-- 동별 연령대별 유동인구 조회 -->
+	<select id="getPpaList" parameterType="long" resultType="ppaVo">
+		select * from ppa
+		where region_cd = #{region_cd}
+		order by ppa_age_group
+	</select>
+	
+	<!-- 동별 성별 유동인구 조회 -->
+	<select id="getPpgList" parameterType="long" resultType="ppgVo">
+		select ppg_gender
+		     , ppg_cnt
+		     , round((ratio_to_report(ppg_cnt) over() * 100),0) ppg_ratio
+		from ppg
+		where region_cd = #{region_cd}
+	</select>
+	
+	<!-- 동별 소비수준 조회 -->
+	<select id="getSpendLevel" resultType="kr.or.ddit.tobRecom.model.JbVo">
+		select REGION_CD
+		     , rank() over(order by sum(SALES_MONTHLY) desc) rank
+		from SALES
+		where SALES_DT = 201901
+		group by REGION_CD
+	</select>
+	
+	<!-- 상권유형코드 조회 -->
+	<select id="getBdTypeCd" parameterType="string" resultType="int">
+		select bd_type_cd
+		from bd_type
+		where bd_type_name = #{bd_type_name}
+	</select>
+	
+	<!-- 중분류별 상권유형 순위 조회 -->
+	<select id="getBdTypeRank" parameterType="int" resultType="gofVo">
+		select tob_cd, gof_rank
+		from gof
+		where bd_type_cd = #{bd_type_cd}
+		order by tob_cd
+	</select>
+	
+	<!-- 중분류별 주 고객층 순위 조회 -->
+	<select id="getGnaRank" parameterType="map" resultType="gofVo">
+		select tob_cd, gof_rank
+		from gof
+		where gof_gender = #{gender}
+		and gof_age_group = #{age}
+		order by tob_cd
+	</select>
+	
+	<!-- 중분류코드와 이름 조회 -->
+	<select id="getTobName" resultType="tobVo">
+		SELECT TOB_CD, TOB_NAME FROM TOB
+		WHERE TOB_CL = 2
+		AND TOB_YN = 0
+		ORDER BY TOB_CD
+	</select>
+	
+	<!-- 분석보고서 저장 -->
+	<insert id="insertReport" parameterType="reportVo">
+		<selectKey keyProperty="report_cd" resultType="String" order="AFTER">
+			SELECT 'report' || REPORT_SEQ.CURRVAL REPORT_CD
+			FROM DUAL
+		</selectKey>
+		
+		INSERT INTO REPORT(REPORT_CD, MEMBER_ID, REGION_CD, REPORT_KIND, REPORT_DT)
+		VALUES ('report' || REPORT_SEQ.NEXTVAL, #{member_id}, #{region_cd}, 4, SYSDATE)
+	</insert>
+	<!-- 업종추천결과 저장 -->
+	<insert id="insertTobRecom" parameterType="tobRecomVo">
+		INSERT INTO TOBRECOM
+		VALUES(#{report_cd},#{selectAddr},#{stData},#{grade},#{btype},
+			#{foodPercent},#{servicePercent},#{retailPercent},#{rating},
+			#{popNum},#{spendRating},#{btypeInfo})
+	</insert>
+	<!-- 업종별입지등급 저장 -->
+	<insert id="insertLAList" parameterType="locationaVo">
+		INSERT INTO LOCATIONA2
+		VALUES(#{report_cd}, #{tob}, #{maxx}, #{grade})
+	</insert>
+	<!-- 상권내 밀집업종 저장 -->
+	<insert id="insertTobCompList" parameterType="tobCompVo">
+		INSERT INTO TOBCOMP
+		VALUES(#{report_cd}, #{tob_name}, #{tob_cd}, #{inRegion}, #{inDaejeon}, #{deviation})
+	</insert>
+	<!-- 중분류별 상권적합도 우수업종 저장 -->
+	<insert id="insertGofPointList" parameterType="jbVo">
+		INSERT INTO GOFPOINT
+		VALUES(#{report_cd}, #{tob_cd}, #{tob_name}, #{rank}, #{point})
+	</insert>
+	
+	<!-- 업종추천결과 조회 -->
+	<select id="readTobRecomReport" parameterType="string" resultType="tobRecomVo">
+		SELECT * FROM TOBRECOM
+		WHERE REPORT_CD = #{report_cd}
+	</select>
+	<!-- 업종별입지등급 조회 -->
+	<select id="readLAList" parameterType="string" resultType="locationaVo">
+		SELECT * FROM LOCATIONA2
+		WHERE REPORT_CD = #{report_cd}
+		ORDER BY grade
+	</select>
+	<!-- 상권내 밀집업종 조회 -->
+	<select id="readTobCompList" parameterType="string" resultType="tobCompVo">
+		SELECT * FROM TOBCOMP
+		WHERE REPORT_CD = #{report_cd}
+		ORDER BY inregion DESC
+	</select>
+	<!-- 중분류별 상권적합도 우수업종 조회 -->
+	<select id="readGofPointList" parameterType="string" resultType="jbVo">
+		SELECT * FROM GOFPOINT
+		WHERE REPORT_CD = #{report_cd}
+		ORDER BY POINT DESC
+	</select>
+	<!-- 분석보고서에 해당하는 지역정보 조회 -->
+	<select id="readRegionFromReport" parameterType="string" resultType="regionVo">
+		SELECT REGION.REGION_CD, REGION.REGION_CD2, REGION.REGION_CL, REGION.REGION_NAME, REGION.REGION_CSC
+		FROM REGION REGION, REPORT REPORT
+		WHERE REGION.REGION_CD = REPORT.REGION_CD
+		AND REPORT.REPORT_CD = #{report_cd}
+	</select>
+	
+	<!-- 분석기준관리 -->
+	
+	<!-- 전체 업종적합도 분석기준 페이지 조회 -->
+	<select id="getGofList" parameterType="pageVo" resultType="kr.or.ddit.tobRecom.model.GofListVo">
+		<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+		        FROM  (
+		    SELECT CODE
+		     , CODENAME
+		     , MIN(DECODE(RANK,1,NAME)) AS BDTRANK1
+		     , MIN(DECODE(RANK,2,NAME)) AS BDTRANK2
+		     , MIN(DECODE(RANK,3,NAME)) AS BDTRANK3
+		     , MIN(DECODE(RANK,4,NAME)) AS BDTRANK4
+		     , MIN(DECODE(RANK,5,NAME)) AS BDTRANK5
+		     , MIN(DECODE(RANK,1,AGE||' '||GENDER)) AS GNARANK1
+		     , MIN(DECODE(RANK,2,AGE||' '||GENDER)) AS GNARANK2
+		     , MIN(DECODE(RANK,3,AGE||' '||GENDER)) AS GNARANK3
+		     , MIN(DECODE(RANK,4,AGE||' '||GENDER)) AS GNARANK4
+		     , MIN(DECODE(RANK,5,AGE||' '||GENDER)) AS GNARANK5
+		FROM
+		(SELECT GOF.TOB_CD AS CODE
+		      , TOB.TOB_NAME AS CODENAME
+		      , GOF.GOF_RANK AS RANK
+		      , BD.BD_TYPE_NAME AS NAME
+		      , GOF.GOF_AGE_GROUP || '대' AS AGE
+		      , DECODE(GOF_GENDER,1,'남성',2,'여성') AS GENDER
+		FROM GOF GOF, BD_TYPE BD, TOB TOB
+		WHERE GOF.BD_TYPE_CD = BD.BD_TYPE_CD
+		AND TOB.TOB_CD = GOF.TOB_CD
+		ORDER BY GOF.TOB_CD, GOF.GOF_RANK)
+		GROUP BY CODE, CODENAME
+		ORDER BY CODE) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	<!-- 업종적합도 분석기준 전체 갯수 조회 -->
+	<select id="getAllGofCnt" resultType="int">
+		SELECT COUNT(*) FROM
+		(SELECT TOB_CD FROM GOF GROUP BY TOB_CD)
+	</select>
+	
+	<!-- 업종명으로 검색된 분석기준 페이지 조회 -->
+	<select id="getGofSearchList" parameterType="map" resultType="kr.or.ddit.tobRecom.model.GofListVo">
+		<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+		        FROM  (
+		SELECT CODE
+		     , CODENAME
+		     , MIN(DECODE(RANK,1,NAME)) AS BDTRANK1
+		     , MIN(DECODE(RANK,2,NAME)) AS BDTRANK2
+		     , MIN(DECODE(RANK,3,NAME)) AS BDTRANK3
+		     , MIN(DECODE(RANK,4,NAME)) AS BDTRANK4
+		     , MIN(DECODE(RANK,5,NAME)) AS BDTRANK5
+		     , MIN(DECODE(RANK,1,AGE||' '||GENDER)) AS GNARANK1
+		     , MIN(DECODE(RANK,2,AGE||' '||GENDER)) AS GNARANK2
+		     , MIN(DECODE(RANK,3,AGE||' '||GENDER)) AS GNARANK3
+		     , MIN(DECODE(RANK,4,AGE||' '||GENDER)) AS GNARANK4
+		     , MIN(DECODE(RANK,5,AGE||' '||GENDER)) AS GNARANK5
+		FROM
+		(SELECT GOF.TOB_CD AS CODE
+		      , TOB.TOB_NAME AS CODENAME
+		      , GOF.GOF_RANK AS RANK
+		      , BD.BD_TYPE_NAME AS NAME
+		      , GOF.GOF_AGE_GROUP || '대' AS AGE
+		      , DECODE(GOF_GENDER,1,'남성',2,'여성') AS GENDER
+		FROM GOF GOF, BD_TYPE BD, TOB TOB
+		WHERE GOF.BD_TYPE_CD = BD.BD_TYPE_CD
+		AND TOB.TOB_CD = GOF.TOB_CD
+		AND TOB.TOB_NAME LIKE '%' || #{tob_name} || '%'
+		ORDER BY GOF.TOB_CD, GOF.GOF_RANK)
+		GROUP BY CODE, CODENAME
+		ORDER BY CODE) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	<!-- 업종명으로 검색된 분석기준 전체 갯수 조회 -->
+	<select id="getSearchGofCnt" parameterType="string" resultType="int">
+		SELECT COUNT(*) FROM
+		(
+		    SELECT gof.TOB_CD, tob.TOB_NAME
+		    FROM GOF gof, TOB tob
+		    WHERE tob.TOB_CD = gof.TOB_CD
+		    AND tob.TOB_NAME LIKE '%' || #{tob_name} || '%'
+		    GROUP BY gof.TOB_CD, tob.TOB_NAME
+		)
+	</select>
+	
+	<!-- 분석기준 수정 -->
+	<update id="gofModify" parameterType="map">
+		UPDATE GOF
+		SET BD_TYPE_CD = (SELECT BD_TYPE_CD FROM BD_TYPE WHERE BD_TYPE_NAME = #{bdt})
+		  , GOF_GENDER = (SELECT DECODE(SUBSTR(#{gna},-2,2),'여성',2,'남성',1) FROM DUAL)
+		  , GOF_AGE_GROUP = (SELECT SUBSTR(#{gna},1,2) FROM DUAL)
+		WHERE GOF_RANK = #{rank}
+		AND TOB_CD = #{code}
+	</update>
+	
+	<!-- 분석기준에 추가할 수 있는 새 중분류 조회 -->
+	<select id="getTobForInsertGof" resultType="tobVo">
+		SELECT TOB_CD, TOB_NAME
+		FROM TOB
+		WHERE NOT EXISTS(SELECT DISTINCT TOB_CD FROM GOF WHERE TOB.TOB_CD = GOF.TOB_CD)
+		AND TOB_YN = 0
+		AND TOB_CL = 2
+		ORDER BY TOB_CD
+	</select>
+	
+	<!-- 분석기준 추가 -->
+	<insert id="gofInsert" parameterType="map">
+		INSERT INTO GOF VALUES
+		(
+			#{rank}
+			,#{code}
+			,(SELECT BD_TYPE_CD FROM BD_TYPE WHERE BD_TYPE_NAME = #{bdt})
+			,(SELECT DECODE(SUBSTR(#{gna},-2,2),'여성',2,'남성',1) FROM DUAL)
+			,(SELECT SUBSTR(#{gna},1,2) FROM DUAL)
+		)
+	</insert>
+	
+</mapper>

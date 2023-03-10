@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+	<!-- tiles  -->
+	<definition name="layout" template="/WEB-INF/views/common/layout.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/common/header.jsp"/>
+		<put-attribute name="left" value="/WEB-INF/views/common/left.jsp"/>
+		<put-attribute name="body" value=""/>
+	</definition>
+	
+	<!--main  -->
+	<definition name="tiles.main" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/pojo.jsp"/>
+	</definition>
+	
+	<!--faq  -->
+	<definition name="faq/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/faq/{1}.jsp"/>
+	</definition>
+	
+	<!--자유게시판  -->
+	<definition name="tiles.f_bList" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/freeBoard/freeBoardList.jsp"/>
+	</definition>
+	
+	<!--자유게시판(게시물등록) -->
+	<definition name="tiles.f_bAdd" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/freeBoard/freeBoardAdd.jsp"/>
+	</definition>
+	
+	<!--자유게시판 상세보기 -->
+	<definition name="tiles.f_bDetail" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/freeBoard/freeBoardDetail.jsp"/>
+	</definition>
+	
+	<!--자유게시판 수정하기 -->
+	<definition name="tiles.f_bModify" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/freeBoard/freeBoardModify.jsp"/>
+	</definition>
+	
+	<!--지원시책 페이지  -->
+	<definition name="support/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/support/{1}.jsp"/>
+	</definition>
+	
+	<!--분석보고서 페이지  -->
+	<definition name="report/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/report/{1}.jsp"/>
+	</definition>
+	
+	<!-- 상권분석 메뉴 -->
+	<definition name="bdAnalysis/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/bdAnalysis/{1}.jsp"/>
+	</definition>
+	
+	<!-- 업종추천 관련 페이지 -->
+	<definition name="tobRecom/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/tobRecom/{1}.jsp"/>
+	</definition>
+	
+	<!-- 입지분석 페이지 -->
+	<definition name="locationAnalysis/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/locationAnalysis/{1}.jsp"/>
+	</definition>
+	
+	<!--no tiles  -->
+	<definition name="no-tiles" template="/WEB-INF/views/common/noTemplate.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/common/header.jsp"/>
+		<put-attribute name="left" value=""/>
+		<put-attribute name="body" value=""/>
+	</definition>
+	
+	<!--로그인 관련 페이지  -->
+	<definition name="/login/*" extends="no-tiles">
+		<put-attribute name="body" value="/WEB-INF/views/login/login.jsp"/>
+	</definition>
+	
+	<!--회원가입 관련 페이지  -->
+	<definition name="/member/*" extends="no-tiles">
+		<put-attribute name="body" value="/WEB-INF/views/member/register.jsp"/>
+	</definition>
+	
+	<!-- 회원관리 -->
+	<definition name="tiles.memberManager" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/memberManagement/memberList.jsp"/>
+	</definition>
+	
+	<!-- 회원검색 -->
+	<definition name="tiles.memberSearch" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/memberManagement/memberSearch.jsp"/>
+	</definition>
+	
+	<!-- 수익분석 페이지 -->
+	<definition name="marginAnalysis/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/marginAnalysis/{1}.jsp"/>
+	</definition>
+	
+	<!-- 상권현황 페이지 -->
+	<definition name="bdPrsct/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/bdPrsct/{1}.jsp"/>
+	</definition>
+	
+	<!-- 비밀번호 수정 페이지 -->
+	<definition name="tiles.modifyPw" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/login/modifyPw.jsp"/>
+	</definition>
+	
+	<!-- 공지사항 페이지 -->
+	<definition name="notice/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/notice/{1}.jsp"/>
+	</definition>
+	
+	<!-- 건의사항 페이지 -->
+	<definition name="tiles.suList" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/suggestion/suggestionList.jsp"/>
+	</definition>
+	
+	<!-- 건의사항 추가 페이지 -->
+	<definition name="tiles.suggestionAdd" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/suggestion/suggestionAdd.jsp"/>
+	</definition>
+	
+	<!-- 건의사항 상세보기 -->
+	<definition name="tiles.suggestion_detail" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/suggestion/suggestionDetail.jsp"/>
+	</definition>
+	
+	<!-- 마이페이지 -->
+	<definition name="myPage/*" extends="layout">
+		<put-attribute name="body" value="/WEB-INF/views/myPage/{1}.jsp"/>
+	</definition>
+	
+	
+	
+</tiles-definitions>

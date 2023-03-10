@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="board">
+
+	<select id="getAllFreeBoard" resultType="FreeBoardVo">
+		select * from Freeboard 
+		order by REGEXP_REPLACE(FREEBOARD_CD, '[0-9]') , to_number(REGEXP_REPLACE(FREEBOARD_CD, '[^0-9]')) desc
+	</select>
+	
+	<select id="getPagingFreeBoard" parameterType="pageVo" resultType="FreeBoardVo">
+		<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+				FROM  (SELECT *
+				       FROM   freeboard
+				       ORDER BY REGEXP_REPLACE(freeboard_CD, '[0-9]') 
+				        , TO_NUMBER(REGEXP_REPLACE(freeboard_CD, '[^0-9]')) DESC) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+
+	<select id="getKeywordPagingFreeBoard" parameterType="map" resultType="FreeBoardVo">
+		<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+				FROM  (SELECT *
+				       FROM   freeboard
+				       where    fb_TITLE LIKE '%' || #{keyword} || '%'
+        				or         member_id LIKE '%' || #{keyword} || '%'
+				       ORDER BY REGEXP_REPLACE(freeboard_CD, '[0-9]') 
+				              , TO_NUMBER(REGEXP_REPLACE(freeboard_CD, '[^0-9]')) DESC) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	<select id="getMainFreeBoard" resultType="FreeBoardVo">
+		<![CDATA[
+		select * 
+		from (select * from freeboard order by REGEXP_REPLACE(FREEBOARD_CD, '[0-9]') 
+		, to_number(REGEXP_REPLACE(FREEBOARD_CD, '[^0-9]')) desc)
+		where fb_yn=1 
+		and  rownum < 6
+		]]>
+	</select>
+		
+	
+	<select id="getFreeboardCount" resultType="int">
+		select count(*) from freeboard
+	</select>
+	
+	<select id="getKeywordFreeCnt" resultType="int" parameterType="String">
+		SELECT COUNT(*)
+		FROM   freeboard
+		where    fb_TITLE LIKE '%' || #{keyword} || '%'
+        or         member_id LIKE '%' || #{keyword} || '%'
+	</select>
+	
+	
+	<insert id="insertFreeBoard" parameterType="FreeBoardVo">
+		insert into freeboard
+		values(
+		'freeboard' || freeboard_seq.nextval
+        ,#{member_id}
+		,#{fb_title}
+		,#{fb_content}
+        ,sysdate
+		, 1)
+	</insert>
+	
+	<!-- 게시판 번호로 게시판 한개 가져오기 -->
+	<select id="getFreeBoard" resultType="FreeBoardVo" parameterType="String">
+		select * from freeboard where freeboard_cd = #{freeBoard_cd}
+	</select>
+	
+	<!-- 게시판 삭제 -->
+	<update id="getFreedel" parameterType="String">
+		update 	freeboard
+		set 	fb_yn = 0			
+		where 	freeboard_cd = #{freeboard_cd}
+	</update>
+	
+	<!-- 게시판 수정 -->
+	<update id="getFreeModify" parameterType="String">
+		update freeboard
+		set     fb_title = #{fb_title}
+        ,fb_content = #{fb_content}
+		where   freeboard_cd = #{freeboard_cd}
+	</update>
+	
+	<!-- 게시글 검색 -->
+	<select id="getFreeboardSearch" parameterType="String" resultType="FreeboardVo">
+		select * 
+		FROM freeboard 
+		where member_id LIKE '%'||#{keyword }||'%'
+		or fb_title LIKE '%'||#{keyword }||'%'
+		and fb_yn = 1
+		order by REGEXP_REPLACE(FREEBOARD_CD, '[0-9]') , to_number(REGEXP_REPLACE(FREEBOARD_CD, '[^0-9]')) desc
+	</select>
+	
+	
+	
+
+</mapper>

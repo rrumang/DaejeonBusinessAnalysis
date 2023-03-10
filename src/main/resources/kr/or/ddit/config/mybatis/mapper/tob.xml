@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="tob">
+	
+	<!-- 전체 대분류 리스트 조회 -->
+	<select id="getAllTopTobList" resultType="tobVo">
+		SELECT  *
+		FROM    TOB
+		WHERE   TOB_CL = 1
+		AND     TOB_YN = 0
+		order by tob_cd
+	</select>
+	
+	<select id="getMidList" resultType="tobVo" parameterType="String">
+		select 	* 
+		from 	tob
+		where 	tob_cd2	=#{tob_cd2}
+		and 	tob_yn = 0
+	</select>
+	
+	
+
+	
+	<!-- 전체 중분류 리스트 조회 -->
+	<select id="getAllMidTobList" resultType="tobVo">
+		SELECT  *
+		FROM    TOB
+		WHERE   TOB_CL = 2
+		AND     TOB_YN = 0
+	</select>
+	
+	<!-- 전체 소분류 리스트 조회 -->
+	<select id="getAllBotTobList" resultType="tobVo">
+		SELECT  *
+		FROM    TOB
+		WHERE   TOB_CL = 3
+		AND     TOB_YN = 0
+	</select>
+	
+</mapper>

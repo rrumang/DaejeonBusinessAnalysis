@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="suggestion">
+	<!-- 모든 건의사항 목록 가져오기 -->
+	<select id="getAllSuggestion" resultType="SuggestionVo">
+		SELECT *
+		FROM  SUGGESTION
+		START WITH SUGGESTION_CD2 IS NULL
+		CONNECT BY PRIOR SUGGESTION_CD = Suggestion_CD2
+		ORDER SIBLINGS BY REGEXP_REPLACE(SUGGESTION_CD2, '[0-9]') , to_number(REGEXP_REPLACE(SUGGESTION_CD2, '[^0-9]')) DESC
+		,REGEXP_REPLACE(SUGGESTION_CD, '[0-9]') , to_number(REGEXP_REPLACE(SUGGESTION_CD, '[^0-9]')) DESC
+	</select>
+	
+	<select id="getMainSuggestionBoard" resultType="SuggestionVo">
+		<![CDATA[
+		select * 
+		from (select * from suggestion order by REGEXP_REPLACE(suggestion_CD, '[0-9]') 
+		, to_number(REGEXP_REPLACE(suggestion_CD, '[^0-9]')) desc)
+		where sg_yn=1
+		and sg_secret_yn=1
+		and suggestion_cd2 is null
+		and  rownum < 6
+		]]>
+	</select>
+	
+	<!-- 마지막 등록한 건의사항의 VO가져오기 -->
+	<select id = "getLastSg" resultType="SuggestionVo">
+		 select * from 
+        (select * from suggestion 
+        order by REGEXP_REPLACE(suggestion_cd, '[0-9]') , to_number(REGEXP_REPLACE(suggestion_cd, '[^0-9]')) desc)
+        where rownum = 1
+	</select>
+	
+	<select id = "getAllSuggestionCnt" resultType="int">
+		select count(*) from suggestion
+	</select>
+
+	<select id = "getAllKeywordSuggestionCnt" resultType="int" parameterType="String">
+		select count(*) from suggestion
+		where member_id LIKE '%'||#{keyword}||'%'
+		or sg_title LIKE '%'||#{keyword}||'%'
+	</select>
+	
+	<select id ="getPagingSuggestion" resultType="SuggestionVo" parameterType="pageVo">
+		<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+				FROM  (SELECT *
+							FROM  SUGGESTION
+							START WITH SUGGESTION_CD2 IS NULL
+							CONNECT BY PRIOR SUGGESTION_CD = Suggestion_CD2
+							ORDER SIBLINGS BY REGEXP_REPLACE(SUGGESTION_CD2, '[0-9]') , to_number(REGEXP_REPLACE(SUGGESTION_CD2, '[^0-9]')) DESC
+							,REGEXP_REPLACE(SUGGESTION_CD, '[0-9]') , to_number(REGEXP_REPLACE(SUGGESTION_CD, '[^0-9]')) DESC) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	<select id ="getKeywordPagingSuggestion" resultType="SuggestionVo" parameterType="map">
+	<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+				FROM  (SELECT *
+				       FROM   suggestion
+				        where    sg_TITLE LIKE '%' || #{keyword} || '%'
+        				or       member_id LIKE '%' || #{keyword} || '%'
+				       ORDER BY REGEXP_REPLACE(suggestion_CD, '[0-9]') 
+				        , TO_NUMBER(REGEXP_REPLACE(suggestion_CD, '[^0-9]')) DESC) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	
+	
+	
+	<!-- 건의사항 등록(일반회원) -->
+	<insert id="insertSuggestion" parameterType="SuggestionVo">
+		insert into suggestion
+		values(
+		'suggestion' || suggestion_seq.nextval
+        ,#{member_id}
+        ,'suggestion' || suggestion_seq.nextval
+        ,null
+		,#{sg_title}
+		,#{sg_content}
+        ,sysdate
+        ,#{sg_secret_yn}
+		,1)
+	</insert>
+	
+	<!-- 건의사항 등록(관리자) -->
+	<insert id="insertReply" parameterType="SuggestionVo">
+		insert into suggestion
+		values(
+		'suggestion' || suggestion_seq.nextval
+        ,#{member_id}
+        ,'suggestion' || suggestion_seq.nextval
+        ,#{suggestion_cd2}
+		,#{sg_title}
+		,#{sg_content}
+        ,sysdate
+        ,#{sg_secret_yn}
+		,1)
+	</insert>
+	
+	<!-- 답글이 있는 게시글로 변경하기 -->
+	<update id="getSuggestionReplyOn" parameterType="SuggestionVo">
+	update suggestion
+	set     sg_title = #{sg_title}
+   	,sg_content = #{sg_content}
+   	,sg_secret_yn = #{sg_secret_yn}
+	where   suggestion_cd = #{suggestion_cd}  
+	</update>
+	
+	
+	<!-- 게시판 번호로 게시판 한개 가져오기 -->
+	<select id="getSuggestion" resultType="SuggestionVo" parameterType="String">
+		select * from suggestion where suggestion_cd = #{suggestion_cd}
+	</select>
+	
+	<!-- 건의게시판 수정 -->
+	<update id="getSuggestionModify" parameterType="SuggestionVo">
+	update suggestion
+	set     sg_title = #{sg_title}
+   ,sg_content = #{sg_content}
+   ,sg_secret_yn = #{sg_secret_yn}
+	where   suggestion_cd = #{suggestion_cd}  
+	</update>
+	
+	<!-- 건의사항 게시물 삭제 -->
+	<update id="getSuggestiondel" parameterType="String">
+		update 	suggestion
+		set 	sg_yn = 0			
+		where 	suggestion_cd = #{suggestion_cd}
+	</update>
+	
+	<!-- 게시글 번호로 해당 게시글의 답글이 있는지 확인 -->
+	<select id="getReply" resultType="int" parameterType="String">
+		select count(*) from suggestion where suggestion_cd2 = #{suggestion_cd}
+	</select>
+	
+	<!-- 게시글 검색 -->
+	<select id="getSuggestionboardSearch" parameterType="String" resultType="SuggestionVo">
+		select * 
+		FROM suggestion
+		where member_id LIKE '%'||#{keyword}||'%'
+		or sg_title LIKE '%'||#{keyword}||'%'
+		and sg_yn = 1
+		order by REGEXP_REPLACE(suggestion_CD, '[0-9]') , to_number(REGEXP_REPLACE(suggestion_cd, '[^0-9]')) desc
+	</select>
+	
+	
+	
+
+</mapper>

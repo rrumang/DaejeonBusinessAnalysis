@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<typeAliases>
+		<!-- select 패키지 -->
+		<typeAlias alias="regionVo" type="kr.or.ddit.select.model.RegionVo"/>
+		<typeAlias alias="tobVo" type="kr.or.ddit.select.model.TobVo"/>
+		
+		<!-- data 패키지 -->
+		<typeAlias alias="lpVo" type="kr.or.ddit.data.model.LpVo"/>
+		<typeAlias alias="wpVo" type="kr.or.ddit.data.model.WpVo"/>
+		<typeAlias alias="ppaVo" type="kr.or.ddit.data.model.PpaVo"/>
+		<typeAlias alias="ppgVo" type="kr.or.ddit.data.model.PpgVo"/>
+		<typeAlias alias="salesVo" type="kr.or.ddit.data.model.SalesVo"/>
+		<typeAlias alias="latlngVo" type="kr.or.ddit.data.model.LatLngVo"/>
+		<typeAlias alias="storeVo" type="kr.or.ddit.data.model.StoreVo"/>
+		
+		<!-- 상권분석 패키지 -->
+		<typeAlias alias="evaluationVo" type="kr.or.ddit.bdAnalysis.model.EvaluationVo"/>
+		<typeAlias alias="RateOfChangeVo" type="kr.or.ddit.bdAnalysis.model.RateOfChangeVo"/>
+		<typeAlias alias="UpjongCntRosVo" type="kr.or.ddit.bdAnalysis.model.UpjongCntRosVo"/>
+		<typeAlias alias="sacRosVo" type="kr.or.ddit.bdAnalysis.model.SalesAndCntRosVo"/>
+		<typeAlias alias="aptVo" type="kr.or.ddit.bdAnalysis.model.ApartmentVo"/>
+		
+		<!-- 업종추천 패키지 -->
+		<typeAlias alias="gofVo" type="kr.or.ddit.tobRecom.model.GofVo"/>
+		<typeAlias alias="tobRecomVo" type="kr.or.ddit.tobRecom.model.TobRecomVo"/>
+		<typeAlias alias="tobCompVo" type="kr.or.ddit.tobRecom.model.TobCompVo"/>
+		<typeAlias alias="jbVo" type="kr.or.ddit.tobRecom.model.JbVo"/>
+		
+		<!-- 분석보고서 패키지 -->
+		<typeAlias alias="reportVo" type="kr.or.ddit.report.model.ReportVo"/>
+		
+		<!-- member 패키지 -->
+		<typeAlias alias="memberVo" type="kr.or.ddit.member.model.MemberVo"/>
+		
+		<!-- FAQ 패키지 -->
+		<typeAlias alias="faqVo" type="kr.or.ddit.faq.model.FaqVo"/>
+		
+		<!-- 지역분석 패키지 -->
+		<typeAlias alias="locationaVo" type="kr.or.ddit.locationAnalysis.model.LocationaVo"/>
+		<typeAlias alias="locationAnalysisVo" type="kr.or.ddit.locationAnalysis.model.LocationAnalysisVo"/>
+		
+		<!-- 수익분석 패키지 -->
+		<typeAlias alias="fundVo" type="kr.or.ddit.marginAnalysis.model.FundVo"/>
+		<typeAlias alias="expenseVo" type="kr.or.ddit.marginAnalysis.model.ExpenseVo"/>
+		<typeAlias alias="avgSalesVo" type="kr.or.ddit.marginAnalysis.model.AvgSalesVo"/>
+		<typeAlias alias="marginVo" type="kr.or.ddit.marginAnalysis.model.MarginVo"/>
+		<typeAlias alias="monthlyEpVo" type="kr.or.ddit.marginAnalysis.model.MonthlyEpVo"/>
+		<typeAlias alias="salesGoalVo" type="kr.or.ddit.marginAnalysis.model.SalesGoalVo"/>
+		
+		<!-- 자유게시판 패키지 -->
+		<typeAlias alias="freeBoardVo" type="kr.or.ddit.freeBoard.model.FreeBoardVo"/>
+		<typeAlias alias="commentVo" type="kr.or.ddit.freeBoard.model.CommentVo"/>
+		
+		<!-- 페이징 처리 패키지 -->
+		<typeAlias alias="pageVo" type="kr.or.ddit.paging.model.PageVo"/>
+		
+		<!-- 공지사항 패키지 -->
+		<typeAlias alias="noticeVo" type="kr.or.ddit.notice.model.NoticeVo"/>
+		
+		<!-- 건의사항 패키지 -->
+		<typeAlias alias="suggestionVo" type="kr.or.ddit.suggestion.model.SuggestionVo"/>
+		
+		<!-- 첨부파일 패키지 -->
+		<typeAlias alias="attachVo" type="kr.or.ddit.attach.model.AttachVo"/>
+		
+	</typeAliases>
+	
+	<mappers>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/tobRecom.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/faq.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/report.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/member.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/region.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/locationanly.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/tob.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/bdAnalysis.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/margin.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/board.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/bdPrsct.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/f_comment.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/bdInvestigation.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/notice.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/suggestion.xml"/>
+		<mapper resource="kr/or/ddit/config/mybatis/mapper/attach.xml"/>
+	</mappers>
+
+</configuration>

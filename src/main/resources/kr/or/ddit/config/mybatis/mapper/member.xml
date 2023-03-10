@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="member">
+	<!-- 사용자 등록 -->
+	<insert id="insertMember" parameterType="MemberVo">
+		<choose>
+			<when test="region_cd == 0">
+				insert into members
+				values (#{member_id},#{tob_cd,jdbcType=VARCHAR},null,#{member_password},
+						#{member_name},#{member_email},#{member_tel},#{member_gender},#{member_birth},2,null,null)	
+			</when>
+			<otherwise>
+				insert into members
+				values (#{member_id},#{tob_cd,jdbcType=VARCHAR},#{region_cd},#{member_password},
+						#{member_name},#{member_email},#{member_tel},#{member_gender},#{member_birth},2,null,null)	
+			</otherwise>
+		</choose>
+<!-- 		insert into -->
+<!-- 		members -->
+<!-- 		values(#{member_id},#{tob_cd,jdbcType=VARCHAR},#{region_cd,jdbcType=INTEGER},#{member_password}, -->
+<!-- 		#{member_name},#{member_email},#{member_tel},#{member_gender},#{member_birth},2,null,null) -->
+	</insert>
+	
+	<!-- 사용자 확인 -->
+	<select id="getMember" parameterType="String" resultType="int">
+		select count(*) from members where member_id = #{member_id}
+	</select>
+	
+	<!-- 전체사용자 리스트 -->
+	<select id="getAllMember" resultType="MemberVo">
+		select * from members
+	</select>
+	
+	<!-- 회원탈퇴-->
+	<update id="memberFire" parameterType="String">
+		update members set member_grade = 3 where member_id = #{member_id}
+	</update>
+	
+	<!-- 회원검색 -->
+	<select id="memberSearch" parameterType="String" resultType="MemberVo">
+		select * 
+		FROM members 
+		where member_id LIKE '%'||#{keyword }||'%'
+		or member_name LIKE '%'||#{keyword }||'%'
+	</select>
+	
+	<!-- 지역이름 가져오기 -->
+	<select id="region_name" parameterType="long" resultType="string">
+		select  '대전광역시'|| ' ' ||r.region_name || ' ' || m.region_name
+		from
+		(select *
+		from    region
+		where   region_cd = #{region_cd}) m,
+		region r
+		where   r.region_cd = m.region_cd2
+	</select>
+	
+	<!-- 업종이름 가져오기 -->
+	<select id="tob_name" parameterType="string" resultType="string">
+		select 	tob_name 
+		from    tob 
+		where   tob_cd = #{tob_cd}
+	</select>
+	
+	<!-- 검색한 전체 회원수 가져오기 -->
+	<select id="kewordPaging" parameterType="string" resultType="int">
+	select count(*) from members
+	where member_id LIKE '%'||#{keyword}||'%'
+	or member_name LIKE '%'||#{keyword}||'%'
+	</select>
+	
+	<!-- 전체 회원수 가져오기 -->
+	<select id="allMemberCount" resultType="int">
+	select count(*) from members
+	</select>
+	
+	<!-- 페이징처리된 회원테이블(페이징) -->
+	<select id="paging_member" parameterType="pageVo" resultType="MemberVo">
+	<![CDATA[
+		SELECT B.*
+   		 FROM   (SELECT A.*, ROWNUM RN
+        FROM  (   
+        SELECT * FROM   members
+		ORDER BY  member_id desc  ) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	<!-- 검색어가 포함된 회원테이블(페이징) -->
+	<select id="keyword_paging_member" parameterType="map" resultType="MemberVo">
+	<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+		FROM  (   
+		SELECT * FROM   members
+		where member_id LIKE '%'||#{keyword}||'%'
+		or member_name LIKE '%'||#{keyword}||'%'
+		ORDER BY  member_id desc  ) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+	]]>
+	</select>
+	
+	<!-- 회원이름으로 검색한 회원 총 갯수 조회 -->
+	<select id="getSearchTitleCnt" parameterType="String" resultType="int">
+		SELECT COUNT(*)
+		FROM   members
+		where    member_id LIKE '%' || #{keyword} || '%'
+		or 	member_name LIKE '%' || #{keyword} || '%'
+	</select>
+	
+	
+	<!-- ================================================================= -->
+		
+	<!-- 로그인 -->
+	<select id="normalLogin" parameterType="map" resultType="MemberVo">
+		SELECT *
+		FROM   MEMBERS
+		WHERE  ${column} = #{data}
+	</select>
+	
+	<!-- 소셜계정연동 -->
+	<update id="linkSocial" parameterType="map">
+		UPDATE MEMBERS
+		SET    ${column} = #{data, jdbcType=VARCHAR}
+		WHERE  MEMBER_ID = #{member_id}
+	</update>
+	
+	<!-- 이메일과 전화번호가 일치하는 회원정보 조회 -->
+	<select id="getFindingId" parameterType="MemberVo" resultType="MemberVo">
+		SELECT *
+		FROM   MEMBERS
+		WHERE  MEMBER_EMAIL = #{member_email}
+		AND    MEMBER_TEL = #{member_tel}
+	</select>
+
+	<!-- 특정 회원 조회 -->
+	<select id="getMemberInfo" parameterType="String" resultType="MemberVo">
+		SELECT *
+		FROM   MEMBERS
+		WHERE  MEMBER_ID = #{member_id}
+	</select>
+	
+	<!-- 회원정보 수정 -->
+	<update id="modifyMember" parameterType="MemberVo">
+		UPDATE MEMBERS
+		SET    MEMBER_NAME = #{member_name}
+			 , MEMBER_PASSWORD = #{member_password}
+			 , MEMBER_TEL = #{member_tel}
+			 , MEMBER_EMAIL = #{member_email}
+			 , TOB_CD = #{tob_cd, jdbcType=VARCHAR}
+		<choose>
+			<when test="region_cd == 0">
+			 , REGION_CD = null
+			</when>
+			<otherwise>
+			 , REGION_CD = #{region_cd}
+			</otherwise> 
+		</choose>
+		WHERE  MEMBER_ID = #{member_id}
+	</update>
+	
+	<!-- 회원의 관심업종 소, 중, 대분류코드 조회 -->
+	<select id="getInterestTob" parameterType="String" resultType="tobVo">
+		SELECT TOB_CD
+			 , TOB_CD2
+			 , TOB_CD3 
+		FROM   TOB
+		WHERE  TOB_CD = (SELECT TOB_CD 
+					     FROM   MEMBERS
+					     WHERE  MEMBER_ID = #{member_id})
+	</select>
+	
+	<!-- 회원의 관심지역 동, 구코드 조회 -->
+	<select id="getInterestRegion" parameterType="String" resultType="regionVo">
+		SELECT REGION_CD
+			 , REGION_CD2 
+		FROM   REGION 
+		WHERE  REGION_CD = (SELECT REGION_CD 
+							FROM   MEMBERS
+							WHERE  MEMBER_ID = #{member_id})
+	</select>
+	
+	<!-- 회원 탈퇴 및 계정연동 해제 -->
+	<update id="withdrawMember" parameterType="String">
+		UPDATE MEMBERS
+		SET    MEMBER_GRADE = 3
+			 , MEMBER_KAKAO_KEY = NULL
+			 , MEMBER_NAVER_KEY = NULL
+		WHERE  MEMBER_ID = #{member_id}
+	</update>
+</mapper>

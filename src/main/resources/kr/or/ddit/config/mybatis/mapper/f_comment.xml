@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="commnet">
+	
+<!-- 	댓글리스트 가져오기 -->
+	<select id="getCommnet" resultType="CommentVo" parameterType="String">
+		select * from comments
+		where   freeboard_cd = #{freeboard_cd}
+		order by REGEXP_REPLACE(comment_CD, '[0-9]') , to_number(REGEXP_REPLACE(comment_CD, '[^0-9]')) asc
+	</select>
+	
+<!-- 	댓글추가 -->
+	<insert id="insertCom" parameterType="commentVo">
+		insert into comments 
+            values (
+            'comment'||comment_seq.nextval
+            ,#{freeboard_cd}
+            ,#{member_id}
+            ,#{cm_content}
+            ,sysdate
+            ,1)
+	</insert>
+	
+<!-- 	댓글 삭제 -->
+	<update id="getDeleteCom" parameterType="String">
+		update  comments
+		set     cm_yn = 0
+		where   comment_cd = #{comment_cd}
+	</update>
+	
+
+	
+	
+
+</mapper>

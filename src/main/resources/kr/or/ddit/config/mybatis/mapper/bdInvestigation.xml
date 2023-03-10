@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+
+<mapper namespace="bdInvestigate">
+	
+	<!-- 상권조사 페이지에서 다각형 영역 안에 존재하는 상가 리스트를 조회 -->
+	<select id="getStoreList" parameterType="map" resultType="storeVo">
+		SELECT a.*, t.tob_name
+		FROM store a
+		    ,table(sdo_util.getvertices(a.geo_location)) e
+		    ,tob t
+		WHERE a.tob_cd = t.tob_cd
+		and SDO_GEOM.RELATE(a.geo_location, 'inside', mdsys.sdo_geometry(2003,8307,NULL,
+		    mdsys.sdo_elem_info_array(1,1003,1),
+		    mdsys.sdo_ordinate_array(
+		    <foreach collection="pointList" item="point" separator=",">
+		    	#{point.lng,jdbcType=DOUBLE}, #{point.lat,jdbcType=DOUBLE}
+		    </foreach>
+		    )), 0.0000001) = 'INSIDE' 
+	</select>
+
+
+	<!-- 상권조사 페이지에서 원형 영역 안에 존재하는 상가 리스트를 조회 -->
+	<select id="getStoreList_Circle" parameterType="map" resultType="storeVo">
+        SELECT  a.*, t.tob_name, radius
+		FROM store a
+		    ,table(sdo_util.getvertices(a.pos)) e
+		    ,tob t
+            ,(select  round(sqrt(power(#{sPoint.lng,jdbcType=DOUBLE} -#{ePoint.lng,jdbcType=DOUBLE}, 2) 
+                        +  power(#{sPoint.lat,jdbcType=DOUBLE} -#{ePoint.lat,jdbcType=DOUBLE},2 )), 7)/2 radius
+                      <!-- sqrt(power(#{ePoint.lng,jdbcType=DOUBLE} -#{center.lng,jdbcType=DOUBLE},2) 
+                        +  power(#{ePoint.lat,jdbcType=DOUBLE} -#{center.lat,jdbcType=DOUBLE},2 )) radius -->
+              from dual) r
+		WHERE a.tob_cd = t.tob_cd
+		and SDO_GEOM.RELATE(a.pos, 'inside', mdsys.sdo_geometry(2003,null,NULL,
+		    mdsys.sdo_elem_info_array(1,1003,4),
+		    mdsys.sdo_ordinate_array( 
+		    	#{sPoint.lng,jdbcType=DOUBLE}, #{sPoint.lat,jdbcType=DOUBLE},
+		    	#{center.lng,jdbcType=DOUBLE}+radius, #{center.lat,jdbcType=DOUBLE},
+                #{ePoint.lng,jdbcType=DOUBLE}, #{ePoint.lat,jdbcType=DOUBLE} 
+            )), 0.0000001 ) = 'INSIDE' 
+            
+        <!-- SELECT  a.*, t.tob_name, radius
+		FROM store a
+		    ,table(sdo_util.getvertices(a.geo_location)) e
+		    ,tob t
+            ,(select  round(sqrt(power(#{sPoint.lng,jdbcType=DOUBLE} -#{ePoint.lng,jdbcType=DOUBLE}, 2) 
+                        +  power(#{sPoint.lat,jdbcType=DOUBLE} -#{ePoint.lat,jdbcType=DOUBLE},2 )), 7)/2 radius
+              from dual) r
+		WHERE a.tob_cd = t.tob_cd
+		and SDO_GEOM.RELATE(a.geo_location, 'inside', mdsys.sdo_geometry(2003,8307,NULL,
+		    mdsys.sdo_elem_info_array(1,1003,1),
+		    mdsys.sdo_ordinate_array( 
+		    	#{center.lng,jdbcType=DOUBLE}, #{center.lat,jdbcType=DOUBLE} -radius,
+		    	#{center.lng,jdbcType=DOUBLE}+radius, #{center.lat,jdbcType=DOUBLE},
+		    	#{center.lng,jdbcType=DOUBLE}, #{center.lat,jdbcType=DOUBLE}+radius,
+		    	#{center.lng,jdbcType=DOUBLE}-radius, #{center.lat,jdbcType=DOUBLE}
+            )), 0.0000001 ) = 'INSIDE' -->
+	</select>
+
+	<!-- 상권조사 페이지에서 다각형 영역 안에 존재하는 상가 업소수와 업소분류명 통계리스트들을 조회-->
+	<select id="getStoreCnt_Polygon" parameterType="map" resultType="kr.or.ddit.bdPrsct.model.StoreCntVo">
+		SELECT t.top_name, t.mid_name , t.bot_name, count(a.tob_cd) cnt
+		FROM store a,
+		    (select bot.tob_cd, bot.tob_name bot_name, mid.tob_name mid_name, top.tob_name top_name
+		    from    tob bot, 
+		            (select * from tob where tob_yn = 0 and tob_cl = 2) mid, 
+		            (select * from tob where tob_yn = 0 and tob_cl = 1) top
+		    where   bot.tob_cd2 = mid.tob_cd
+		    and     mid.tob_cd2 = top.tob_cd
+		    and     bot.tob_yn = 0) t
+		WHERE   a.tob_cd = t.tob_cd
+		and     SDO_GEOM.RELATE(a.geo_location, 'inside', mdsys.sdo_geometry(2003,8307,NULL,
+		    mdsys.sdo_elem_info_array(1,1003,1),
+		    mdsys.sdo_ordinate_array(
+		    <foreach collection="pointList" item="point" separator=",">
+		    	#{point.lng,jdbcType=DOUBLE}, #{point.lat,jdbcType=DOUBLE}
+		    </foreach>
+		    )), 0.0000001) = 'INSIDE'
+		group by t.top_name, t.mid_name, t.bot_name
+		order by t.top_name
+	</select>
+
+	<!-- 상권조사 페이지에서 원형 영역 안에 존재하는 상가 업소수와 업소분류명 통계리스트들을 조회-->
+	<select id="getStoreCnt_Circle" parameterType="map" resultType="kr.or.ddit.bdPrsct.model.StoreCntVo">
+		
+		SELECT  t.top_name, t.mid_name , t.bot_name, count(a.tob_cd) cnt
+		FROM store a
+		    ,(select bot.tob_cd, bot.tob_name bot_name, mid.tob_name mid_name, top.tob_name top_name
+		    from    tob bot, 
+		            (select * from tob where tob_yn = 0 and tob_cl = 2) mid, 
+		            (select * from tob where tob_yn = 0 and tob_cl = 1) top
+		    where   bot.tob_cd2 = mid.tob_cd
+		    and     mid.tob_cd2 = top.tob_cd
+		    and     bot.tob_yn = 0) t
+		    ,(select  <!-- round(sqrt(power(#{sPoint.lng,jdbcType=DOUBLE} -#{ePoint.lng,jdbcType=DOUBLE}, 2) 
+                        +  power(#{sPoint.lat,jdbcType=DOUBLE} -#{ePoint.lat,jdbcType=DOUBLE},2 )), 7)/2 radius -->
+                      sqrt(power(#{ePoint.lng,jdbcType=DOUBLE} -#{center.lng,jdbcType=DOUBLE},2) 
+                        +  power(#{ePoint.lat,jdbcType=DOUBLE} -#{center.lat,jdbcType=DOUBLE},2 )) radius
+              from dual) r
+		WHERE   a.tob_cd = t.tob_cd
+		and SDO_GEOM.RELATE(a.pos, 'inside', mdsys.sdo_geometry(2003,null,NULL,
+		    mdsys.sdo_elem_info_array(1,1003,4),
+		    mdsys.sdo_ordinate_array( 
+	    	  	#{sPoint.lng,jdbcType=DOUBLE}, #{sPoint.lat,jdbcType=DOUBLE},
+		    	#{center.lng,jdbcType=DOUBLE}+radius, #{center.lat,jdbcType=DOUBLE},
+                #{ePoint.lng,jdbcType=DOUBLE}, #{ePoint.lat,jdbcType=DOUBLE} 
+            )), 0.0000001 ) = 'INSIDE'
+		group by t.top_name, t.mid_name, t.bot_name
+		order by t.top_name 
+	</select>
+
+</mapper>

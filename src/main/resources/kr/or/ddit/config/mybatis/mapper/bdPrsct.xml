@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="bdPrsct">
+
+	<!-- 전체 구 목록 조회 -->
+	<select id="getGuList" resultType="regionVo">
+		SELECT REGION_CD, REGION_NAME
+		FROM REGION
+		WHERE REGION_CL = 1
+	</select>
+	
+	<!-- 사용하는 대분류 목록 조회 -->
+	<select id="getTobCl1List" resultType="tobVo">
+		SELECT TOB_CD, TOB_NAME
+		FROM TOB
+		WHERE TOB_CL = 1
+		AND TOB_YN = 0
+		ORDER BY TOB_CD
+	</select>
+	
+	<!-- 선택한 대분류에 해당하는 중분류 목록 조회 -->
+	<select id="getTobCl2List" parameterType="string" resultType="tobVo">
+		SELECT TOB_CD, TOB_NAME
+		FROM TOB
+		WHERE TOB_CD LIKE #{tob_cd}||'%'
+		AND TOB_CL = 2
+		AND TOB_YN = 0
+		ORDER BY TOB_CD
+	</select>
+	
+	<!-- 선택한 업종의 시 전체, 구, 동단위 반기별 업소수 (상반기)-->
+	<select id="getBusinessPrsct" parameterType="string" resultType="kr.or.ddit.bdPrsct.model.PrintVo">
+		SELECT (SELECT REGION_NAME FROM REGION WHERE REGION_CD = SUBSTR(BD.REGION_CD,1,5)) GU
+		     , SUBSTR(BD.REGION_CD,1,5) GUCD
+		     , BD.BD_DT
+		     , (SELECT REGION_NAME FROM REGION WHERE REGION_CD = BD.REGION_CD) DONG
+		     , SUM(BD.BD_CNT) SUM1
+		FROM BD BD, TOB TOB
+		WHERE BD.TOB_CD = TOB.TOB_CD
+		AND TOB.TOB_YN = 0
+		AND BD.TOB_CD LIKE #{tob_cd}||'%'
+		AND BD.BD_DT = 201806
+		GROUP BY ROLLUP(SUBSTR(BD.REGION_CD,1,5), BD.BD_DT, BD.REGION_CD)
+		ORDER BY BD.BD_DT DESC, GU DESC, DONG
+	</select>
+	
+	<!-- 선택한 업종의 시 전체, 구, 동단위 반기별 업소수 (하반기)-->
+	<select id="getBusinessPrsct2" parameterType="string" resultType="kr.or.ddit.bdPrsct.model.PrintVo">
+		SELECT (SELECT REGION_NAME FROM REGION WHERE REGION_CD = SUBSTR(BD.REGION_CD,1,5)) GU
+		     , SUBSTR(BD.REGION_CD,1,5) GUCD
+		     , BD.BD_DT
+		     , (SELECT REGION_NAME FROM REGION WHERE REGION_CD = BD.REGION_CD) DONG
+		     , SUM(BD.BD_CNT) SUM1
+		FROM BD BD, TOB TOB
+		WHERE BD.TOB_CD = TOB.TOB_CD
+		AND TOB.TOB_YN = 0
+		AND BD.TOB_CD LIKE #{tob_cd}||'%'
+		AND BD.BD_DT = 201812
+		GROUP BY ROLLUP(SUBSTR(BD.REGION_CD,1,5), BD.BD_DT, BD.REGION_CD)
+		ORDER BY BD.BD_DT DESC, GU DESC, DONG
+	</select>
+	
+	<!-- 선택한 업종의 구단위 반기별 매출액, 건단가 -->
+	<select id="getSalesPrsct" parameterType="map" resultType="kr.or.ddit.bdPrsct.model.SalesPresentVo">
+		SELECT SP.SP_DT
+		     , (SELECT TOB_NAME FROM TOB WHERE TOB_CD = SP.TOB_CD) TOB
+		     , (SELECT REGION_NAME FROM REGION WHERE REGION_CD = SP.REGION_CD) GU
+		     , SP.SP_MONTHLY
+		     , SP.SP_UNIT_COST
+		FROM SALES_PRESENT SP
+		WHERE (SP.SP_DT = 20181 OR SP.SP_DT = 20182)
+		AND SP.REGION_CD = #{gu}
+		AND SP.TOB_CD = #{tob_cd}
+		ORDER BY SP_DT
+	</select>
+	
+	<!-- 임대시세현황 출력 -->
+	<select id="getLeasePrsct" resultType="kr.or.ddit.bdPrsct.model.LeaseVo">
+		SELECT LA.LEASE_AREA_NAME LEASEAREA
+		     , BT.BUILDING_TYPE_NAME BTYPE
+		     , LE.LEASE_DT DT
+		     , LE.LEASE_FLOOR FLOOR
+		     , NVL(LE.LEASE_RENT,0) RENT
+		FROM LEASE LE, LEASE_AREA LA, BUILDING_TYPE BT
+		WHERE LE.LEASE_AREA_CD = LA.LEASE_AREA_CD
+		AND LE.BUILDING_TYPE_CD = BT.BUILDING_TYPE_CD
+		ORDER BY LEASEAREA, BTYPE DESC, FLOOR
+	</select>
+	
+	<!-- 창폐업률현황 출력 -->
+	<select id="getFcPrsct" resultType="kr.or.ddit.bdPrsct.model.BusinessmanVo">
+		SELECT BM.BM_DT
+		     , BM.BM_CL
+		     , IND.INDUSTRY_NAME
+		     , BT.BM_TYPE_NAME
+		     , BM.BM_CNT
+		FROM BUSINESSMAN BM, BM_TYPE BT, INDUSTRY IND
+		WHERE BM.INDUSTRY_CD = IND.INDUSTRY_CD
+		AND BM.BM_TYPE_CD = BT.BM_TYPE_CD
+		AND (BM.BM_CL = 1 OR BM.BM_CL = 2 OR BM.BM_CL = 3)
+		ORDER BY IND.INDUSTRY_CD, BM.BM_CL, BM.BM_TYPE_CD
+	</select>
+	
+	<!-- 활용현황 출력 -->
+	<select id="getUtilizePrsct" parameterType="map" resultType="kr.or.ddit.bdPrsct.model.UtilizeVo">
+		SELECT NVL(DECODE(ROWNUM,1,'',ROWNUM-1),' ') RANK
+		     , DECODE(A.TOB_NAME,NULL,'합계',A.TOB_NAME) AS TOB_NAME
+		     , A.TMP AS COUNT
+		FROM
+		(SELECT TOB.TOB_NAME, COUNT(REPORT.REPORT_CD) AS TMP
+		FROM REPORT REPORT, TOB TOB
+		WHERE REPORT.TOB_CD = TOB.TOB_CD
+		AND REPORT.REGION_CD LIKE #{gu}||'%'
+		AND REPORT.TOB_CD LIKE #{tob_cd}||'%'
+		GROUP BY ROLLUP(TOB.TOB_NAME)
+		ORDER BY COUNT(REPORT.REPORT_CD) DESC
+		) A
+	</select>
+	
+</mapper>

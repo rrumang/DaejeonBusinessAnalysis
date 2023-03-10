@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd">
+	
+	<context:component-scan base-package="kr.or.ddit" use-default-filters="false">
+		<!-- default filter를 끄고 controller를 기본적으로 scan하도록 설정한다 -->
+		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+		<context:include-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+		<!-- 끈 기본필터 중 추가로 사용하려는 필터를 등록 -->
+	</context:component-scan>
+	
+	<mvc:annotation-driven/>
+	<mvc:default-servlet-handler/>
+	
+	<!-- 
+		복수개의 viewResolver를 사용할 경우 우선순위를 가장 늦게 배정해야 한다
+		 viewName이 유효한지(존재하는지)에 관계없이 무조건 처리하기 때문
+		 (에러 발생 가능성이 높다)
+	 -->
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/views/"/> <!-- 접두 -->
+		<property name="suffix" value=".jsp"/> <!-- 접미 -->
+		<property name="order" value="3"/>
+	</bean>
+	
+	<!-- controller에서 리턴하는 view 이름과 동일한 spring bean이 존재하면 해당 view에 위임한다 -->
+	<bean class="org.springframework.web.servlet.view.BeanNameViewResolver">
+		<property name="order" value="2"/>
+	</bean>
+	
+	
+	<!--tiles view resolver  -->
+	<bean class="org.springframework.web.servlet.view.tiles3.TilesConfigurer">
+		<property name="definitions">
+			<list>
+				<value>classpath:kr/or/ddit/config/tiles/tiles-config.xml</value>
+			</list>
+		</property>
+	</bean>
+	<bean class="org.springframework.web.servlet.view.tiles3.TilesViewResolver">
+		<property name="order" value="1"/>
+		<property name="viewClass" value="org.springframework.web.servlet.view.tiles3.TilesView"/>
+	</bean>
+	
+	
+	<!-- controller에서 model객체에 넣은 속성을 이용하여 응답을 json으로 만들어 주는 view (예: map객체, list객체, UserVo 등)-->
+	<bean id="jsonView" class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
+	
+	<!-- multipart resolver -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSizePerFile" value="3145728"/>
+		<property name="maxUploadSize" value="15728640"/>
+	</bean>
+	
+	<!-- mail 전송관련 bean 및 설정 추가-->
+	<context:property-placeholder location="classpath:kr/or/ddit/config/mail/mail.properties"/>
+	
+	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="${mail.host}" />
+		<property name="port" value="${mail.port}" />
+		<property name="username" value="${mail.username}" />
+		<property name="password" value="${mail.password}" />
+		<property name="javaMailProperties">
+			<props>
+				<prop key="mail.smtp.auth">true</prop>
+			</props>
+		</property>
+	</bean>
+	
+	<!-- 첨부파일 다운로드뷰 빈 추가 -->
+	<bean id="fileDownloadView" class="kr.or.ddit.attach.controller.FileDownloadView"/>
+	
+</beans>

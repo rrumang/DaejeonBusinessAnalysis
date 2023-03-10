@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="notice">
+	<!-- 삭제되지 않은 전체 공지사항 게시글 페이지 조회 -->
+	<select id="getAllNotice" parameterType="pageVo" resultType="noticeVo">
+		<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+				FROM  (SELECT *
+				       FROM   NOTICE
+				       WHERE  NOTICE_YN = 1
+				       ORDER BY REGEXP_REPLACE(NOTICE_CD, '[0-9]') 
+				              , TO_NUMBER(REGEXP_REPLACE(NOTICE_CD, '[^0-9]')) DESC) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	<!-- 삭제되지 않은 전체 공지사항 게시글 갯수 조회 -->
+	<select id="getAllCnt" resultType="int">
+		SELECT COUNT(*)
+		FROM   NOTICE
+		WHERE  NOTICE_YN = 1
+	</select>
+	
+	<!-- 특정 공지사항 게시글 조회 -->
+	<select id="getNotice" parameterType="String" resultType="noticeVo">
+		SELECT *
+		FROM   NOTICE
+		WHERE  NOTICE_CD = #{notice_cd}
+	</select>
+
+	<!-- 공지사항 게시글 등록 -->
+	<insert id="insertNotice" parameterType="noticeVo">
+		<selectKey keyProperty="notice_cd" resultType="String" order="AFTER">
+			SELECT 'notice' || NOTICE_SEQ.CURRVAL notice_cd
+			FROM DUAL
+		</selectKey>
+		
+		INSERT INTO NOTICE
+		VALUES ('notice' || NOTICE_SEQ.NEXTVAL, #{notice_title}, #{notice_content}, SYSDATE, 1)
+	</insert>
+
+	<!-- 공지사항 게시글 수정 -->
+	<update id="updateNotice" parameterType="noticeVo">
+		UPDATE NOTICE
+		SET    NOTICE_TITLE = #{notice_title}
+			 , NOTICE_CONTENT = #{notice_content}
+		WHERE  NOTICE_CD = #{notice_cd}
+	</update>
+	
+	<!-- 공지사항 게시글 삭제(삭제여부 수정) -->
+	<update id="updateStatus" parameterType="String">
+		UPDATE NOTICE
+		SET    NOTICE_YN = 0
+		WHERE  NOTICE_CD = #{notice_cd}
+	</update>
+	
+	<!-- 공지사항 게시글 제목으로 검색, 페이지 조회 -->
+	<select id="searchTitle" parameterType="map" resultType="noticeVo">
+		<![CDATA[
+		SELECT B.*
+		FROM   (SELECT A.*, ROWNUM RN
+				FROM  (SELECT *
+				       FROM   NOTICE
+				       WHERE  NOTICE_YN = 1
+				       AND    NOTICE_TITLE LIKE '%' || #{notice_title} || '%'
+				       ORDER BY REGEXP_REPLACE(NOTICE_CD, '[0-9]') 
+				              , TO_NUMBER(REGEXP_REPLACE(NOTICE_CD, '[^0-9]')) DESC) A ) B 
+		WHERE  B.RN >= (#{page} - 1) * #{pageSize} + 1
+		AND    B.RN <= #{page} * #{pageSize}
+		]]>
+	</select>
+	
+	<!-- 공지사항 게시글 제목으로 검색한 게시글 총 갯수 조회 -->
+	<select id="getSearchTitleCnt" parameterType="String" resultType="int">
+		SELECT COUNT(*)
+		FROM   NOTICE
+		WHERE  NOTICE_YN = 1
+		AND    NOTICE_TITLE LIKE '%' || #{notice_title} || '%'
+	</select>
+	
+	<!-- 최근 작성된 공지사항 게시글 5개 조회 (삭제되지 않은 게시글만, 메인용) -->
+	<select id="getNoticeMain" resultType="noticeVo">
+		<![CDATA[
+		SELECT *
+		FROM
+		    (SELECT *
+		     FROM   NOTICE
+		     WHERE  NOTICE_YN = 1
+		     ORDER BY REGEXP_REPLACE(NOTICE_CD, '[0-9]') 
+		            , TO_NUMBER(REGEXP_REPLACE(NOTICE_CD, '[^0-9]')) DESC)
+		WHERE  ROWNUM >= 1 AND ROWNUM <= 5
+		]]>
+	</select>
+</mapper>

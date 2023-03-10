@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="attach">
+	<!-- 특정 게시글(공지사항 혹은 건의사항)의 전체 첨부파일 조회 -->
+	<select id="getAttachList" parameterType="map" resultType="attachVo">
+		SELECT *
+		FROM   ATTACH
+		WHERE  ${column} = #{data}
+		ORDER BY REGEXP_REPLACE(ATTACH_CD, '[0-9]') 
+			   , TO_NUMBER(REGEXP_REPLACE(ATTACH_CD, '[^0-9]'))
+	</select>
+	
+	<!-- 특정 첨부파일 조회 -->
+	<select id="getAttach" parameterType="String" resultType="attachVo">
+		SELECT *
+		FROM   ATTACH
+		WHERE  ATTACH_CD = #{attach_cd}
+	</select>
+
+	<!-- 첨부파일 등록 -->
+	<insert id="insertAttach" parameterType="attachVo">
+		INSERT INTO ATTACH
+		VALUES ('attach' || ATTACH_SEQ.NEXTVAL
+			  , #{notice_cd, jdbcType=VARCHAR}
+			  , #{suggestion_cd, jdbcType=VARCHAR}
+			  , #{attach_name}
+			  , #{attach_path}
+			  , 1)
+	</insert>
+
+	<!-- 첨부파일 삭제 -->
+	<delete id="deleteAttach" parameterType="String">
+		DELETE ATTACH
+		WHERE  ATTACH_CD = #{attach_cd}
+	</delete>
+	
+	<!-- 삭제여부를 0(삭제)로 수정 -->
+	<update id="updateStatusY" parameterType="String">
+		UPDATE ATTACH
+		SET    ATTACH_YN = 0
+		WHERE  ATTACH_CD = #{attach_cd}
+	</update>
+	
+	<!-- 삭제여부를 1(삭제아님)로 수정 -->
+	<update id="updateStatusN" parameterType="String">
+		UPDATE ATTACH
+		SET    ATTACH_YN = 1
+		WHERE  ATTACH_CD = #{attach_cd}
+	</update>
+	
+	<!-- 특정 게시글(공지사항 혹은 건의사항)의 삭제여부가 0(삭제)인 첨부파일 조회 -->
+	<select id="getAttachListY" parameterType="map" resultType="attachVo">
+		SELECT *
+		FROM   ATTACH
+		WHERE  ${column} = #{data}
+		AND    ATTACH_YN = 0
+		ORDER BY REGEXP_REPLACE(ATTACH_CD, '[0-9]') 
+			   , TO_NUMBER(REGEXP_REPLACE(ATTACH_CD, '[^0-9]'))
+	</select>
+</mapper>

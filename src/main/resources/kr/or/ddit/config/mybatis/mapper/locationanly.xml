@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="location">
+
+	<!-- 전체 구/동 목록 조회 -->
+	<select id="getRegion" resultType="regionVo">
+		select * from region
+	</select>
+	
+	<!-- 선택한 구에 해당하는 동 목록 조회 -->
+	<select id="getDong" parameterType="int" resultType="regionVo">
+		select * from region
+		where region_cd2 = #{region_cd2}
+	</select>
+	
+	<!--회원의 아이디를 통해 정보조회  -->
+	<select id="getMember" parameterType="string" resultType="memberVo">
+		select * from members
+		where member_id = #{member_id}
+	</select>
+	
+	<!--관심지역 조회  -->
+	<select id="getInterestRegion" parameterType="string" resultType="regionVo">
+		select b.region_csc, b.region_cd2, b.region_cd, a.region_name, b.region_name rn2
+		from region a, region b
+		where a.region_cd =
+		(select region_cd2 from region where region_cd = 
+		(select region_cd from members where member_id = #{member_id}))
+		and b.region_cd =
+		(select region_cd from members where member_id = #{member_id})
+	</select>
+	
+	<!-- 지역코드로 하나의 지역정보 객체 반환 -->
+	<select id="getOneRegion" parameterType="long" resultType="regionVo">
+		select * from region
+		where region_cd = #{region_cd}
+	</select>
+	
+	<!--대전 전체 지역 중 업종별 최고금액 조회-->
+	<select id="getStandard" resultType="locationaVo">
+		select substr(tob_cd,1,3) as tob,
+		       max(sales_monthly) as maxx
+		from sales
+		group by substr(tob_cd,1,3)
+	</select>
+	
+	<!--선택지역 중 업종별 최고금액 조회-->
+	<select id="getObject" resultType="locationaVo">
+		select substr(tob_cd,1,3) as tob,
+		       max(sales_monthly) as maxx
+		from sales
+		where region_cd = #{region_cd}
+		group by substr(tob_cd,1,3)
+		order by maxx desc
+	</select>
+	
+	<!--업종분류코드에 해당하는 업종명 출력 -->
+	<select id="getTobName" parameterType="string" resultType="string">
+		select tob_name
+		from tob
+		where tob_cd = #{tob_cd}
+	</select>
+	
+	<!--지역코드로  해당지역의 유동인구수 출력 -->
+	<select id="getMove" parameterType="long" resultType="int">
+		select sum(ppg_cnt)
+		from ppg
+		where region_cd = #{region_cd}
+	</select>
+	
+	<!--지역코드로  해당지역의 주거인구수 출력 -->
+	<select id="getLive" parameterType="long" resultType="int">
+		select sum(lp_cnt)
+		from lp
+		where region_cd = #{region_cd}
+	</select>
+	
+	<!--지역코드로  해당지역의 직장인구수 출력 -->
+	<select id="getJob" parameterType="long" resultType="int">
+		select sum(wp_cnt)
+		from wp
+		where region_cd = #{region_cd}
+	</select>
+	
+	<!--report_cd 가져오는 메서드-->
+	<select id="getReport_cd" resultType="string">
+		select report_seq.nextval from dual
+	</select>
+	
+	<!--선택지역 업종별 입지등급  저장 -->
+	<insert id="insertLocationaVo" parameterType="locationaVo">
+		insert into locationa
+		values(
+		'report' || #{report_cd}
+		, #{tob}
+		, #{maxx}
+		, #{grade})
+	</insert>
+	
+	<!--입지등급 보고서 저장 -->
+	<insert id="insertLocationAnalysisVo" parameterType="locationAnalysisVo">
+		insert into LocationAnalysis
+		values(
+		'report' || #{report_cd}
+		, #{member_id}
+		, #{movee}
+		, #{live}
+		, #{jobb}
+		, #{resultt}
+		, #{grade}
+		, #{addr}
+		, #{region_cd}
+		, #{region_csc})
+	</insert>
+	
+	<!--나의 분석보고서에  저장 -->
+	<insert id="insertReport" parameterType="reportVo">
+		insert into report
+		values(
+		'report' || #{report_cd}
+		, #{member_id}
+		, ''
+		, #{region_cd}
+		, 2
+		, sysdate)
+	</insert>
+	
+	<!--보고서코드에 맞는 선택지역 업종별 입지등급 리스트 조회-->
+	<select id="getLocationa" parameterType="string" resultType="locationaVo">
+		select *
+		from locationa
+		where report_cd = #{report_cd}
+	</select>
+	
+	<!--보고서코드에 맞는 선택지역 업종별 입지등급 리스트 조회-->
+	<select id="getLocationReport" parameterType="string" resultType="locationanalysisVo">
+		select *
+		from locationanalysis
+		where report_cd = #{report_cd}
+	</select>
+</mapper>

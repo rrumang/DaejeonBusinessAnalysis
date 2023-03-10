@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="region">
+	
+	<!-- 대전시 구 별 리스트 조회 -->
+	<select id="getGuList" resultType="regionVo">
+		SELECT  *
+		FROM    REGION
+		WHERE   REGION_CL = 1
+	</select>
+	
+	<!-- 대전시 지역코드 별 리스트 조회 -->
+	<select id="getCdList" parameterType="long" resultType="regionVo">
+		SELECT  *
+		FROM    REGION
+		WHERE   REGION_CD = #{region_cd}
+	</select> 
+	
+	
+	<!-- 해당 구의 동 리스트 조회 -->
+	<select id="getDongList" parameterType="int" resultType="regionVo">
+		SELECT  *
+		FROM    REGION
+		WHERE   REGION_CL = 2
+		AND     REGION_CD2 = #{region_cd2}
+	</select>
+	
+	
+	<!-- 해당 지역의 상세정보 조회 -->
+	<select id="getRegionInfo" parameterType="long" resultType="regionVo">
+		SELECT  *
+		FROM    REGION
+		WHERE   REGION_CD = #{region_cd}
+	</select>
+	
+	
+</mapper>
